@@ -515,6 +515,11 @@ export default function Device() {
   const [showEditCustomResolution, setShowEditCustomResolution] = useState(false);
   const [updating, setUpdating] = useState(false);
 
+  // Active status and unassign state
+  const [togglingActive, setTogglingActive] = useState(null); // mobile_id of device being toggled
+  const [unassigning, setUnassigning] = useState(null); // mobile_id of device being unassigned
+  const [activeTab, setActiveTab] = useState("active"); // "active" or "inactive"
+
   // Assign videos modal state
   const [assignDevice, setAssignDevice] = useState(null);
   const [assignGroup, setAssignGroup] = useState("");
@@ -916,6 +921,50 @@ export default function Device() {
     setErrText(prettyErrText(r.error || "Failed to delete"));
   };
 
+  // Handler to toggle device active/inactive status
+  const handleToggleActive = async (device) => {
+    const newStatus = device.is_active !== false ? false : true; // Toggle
+    const action = newStatus ? "activate" : "deactivate";
+    
+    if (!window.confirm(`Are you sure you want to ${action} device "${device.device_name || device.mobile_id}"?\n\n${!newStatus ? "The device will show 'Not Enrolled' screen." : "The device will work normally again."}`)) {
+      return;
+    }
+    
+    setTogglingActive(device.mobile_id);
+    try {
+      const res = await dvsgApi.post(`/device/${device.mobile_id}/active-status`, { is_active: newStatus });
+      toast(res.data.message || `Device ${action}d successfully`);
+      await loadPage(page, pageSize, qApplied); // Refresh the list
+    } catch (err) {
+      toast(`Failed to ${action} device: ${err.response?.data?.detail || err.message}`);
+    } finally {
+      setTogglingActive(null);
+    }
+  };
+
+  // Handler to unassign device from its current group
+  const handleUnassignFromGroup = async (device) => {
+    if (!device.group_name) {
+      toast("Device is not assigned to any group");
+      return;
+    }
+    
+    if (!window.confirm(`Unassign device "${device.device_name || device.mobile_id}" from group "${device.group_name}"?\n\nThis will remove all video/image assignments from this device.`)) {
+      return;
+    }
+    
+    setUnassigning(device.mobile_id);
+    try {
+      const res = await dvsgApi.post(`/device/${device.mobile_id}/unassign-from-group`);
+      toast(res.data.message || "Device unassigned successfully");
+      await loadPage(page, pageSize, qApplied); // Refresh the list
+    } catch (err) {
+      toast(`Failed to unassign device: ${err.response?.data?.detail || err.message}`);
+    } finally {
+      setUnassigning(null);
+    }
+  };
+
   const handleOpenAddModal = () => {
     setAddOpen(true);
     setStep(1);
@@ -1130,6 +1179,66 @@ export default function Device() {
         </button>
       </div>
 
+      {/* Active/Inactive Tabs */}
+      <div style={{ display: "flex", gap: 0, marginBottom: 16, borderBottom: "2px solid #e5e7eb" }}>
+        <button
+          onClick={() => setActiveTab("active")}
+          style={{
+            padding: "12px 24px",
+            fontSize: 14,
+            fontWeight: 600,
+            border: "none",
+            background: activeTab === "active" ? "#fff" : "transparent",
+            color: activeTab === "active" ? "#16a34a" : "#6b7280",
+            borderBottom: activeTab === "active" ? "2px solid #16a34a" : "2px solid transparent",
+            marginBottom: "-2px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          ✓ Active Devices
+          <span style={{
+            background: activeTab === "active" ? "#dcfce7" : "#f3f4f6",
+            color: activeTab === "active" ? "#16a34a" : "#6b7280",
+            padding: "2px 8px",
+            borderRadius: 10,
+            fontSize: 12,
+          }}>
+            {items.filter(d => d.is_active !== false).length}
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveTab("inactive")}
+          style={{
+            padding: "12px 24px",
+            fontSize: 14,
+            fontWeight: 600,
+            border: "none",
+            background: activeTab === "inactive" ? "#fff" : "transparent",
+            color: activeTab === "inactive" ? "#dc2626" : "#6b7280",
+            borderBottom: activeTab === "inactive" ? "2px solid #dc2626" : "2px solid transparent",
+            marginBottom: "-2px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          ⏸️ Inactive Devices
+          <span style={{
+            background: activeTab === "inactive" ? "#fee2e2" : "#f3f4f6",
+            color: activeTab === "inactive" ? "#dc2626" : "#6b7280",
+            padding: "2px 8px",
+            borderRadius: 10,
+            fontSize: 12,
+          }}>
+            {items.filter(d => d.is_active === false).length}
+          </span>
+        </button>
+      </div>
+
       {errText ? (
         <div
           style={{
@@ -1236,11 +1345,12 @@ export default function Device() {
               <tr style={{ background: "#f9fafb", textAlign: "left" }}>
                 <th style={{ padding: 12, fontSize: 12, color: "#6b7280" }}>Device Name</th>
                 <th style={{ padding: 12, fontSize: 12, color: "#6b7280" }}>Mobile ID</th>
+                <th style={{ padding: 12, fontSize: 12, color: "#6b7280" }}>Group</th>
                 <th style={{ padding: 12, fontSize: 12, color: "#6b7280" }}>Resolution</th>
                 <th style={{ padding: 12, fontSize: 12, color: "#6b7280" }}>Downloaded</th>
                 <th style={{ padding: 12, fontSize: 12, color: "#6b7280" }}>Created</th>
                 <th style={{ padding: 12, fontSize: 12, color: "#6b7280" }}>Updated</th>
-                <th style={{ padding: 12, fontSize: 12, color: "#6b7280", width: 220, textAlign: "right" }}>
+                <th style={{ padding: 12, fontSize: 12, color: "#6b7280", width: 320, textAlign: "right" }}>
                   Actions
                 </th>
               </tr>
@@ -1249,18 +1359,18 @@ export default function Device() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: 14, color: "#6b7280" }}>
+                  <td colSpan={8} style={{ padding: 14, color: "#6b7280" }}>
                     Loading...
                   </td>
                 </tr>
-              ) : items.length === 0 ? (
+              ) : items.filter(d => activeTab === "active" ? d.is_active !== false : d.is_active === false).length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: 14, color: "#6b7280" }}>
-                    No devices found.
+                  <td colSpan={8} style={{ padding: 14, color: "#6b7280" }}>
+                    {activeTab === "active" ? "No active devices found." : "No inactive devices found."}
                   </td>
                 </tr>
               ) : (
-                items.map((d) => (
+                items.filter(d => activeTab === "active" ? d.is_active !== false : d.is_active === false).map((d) => (
                   <tr key={d.id ?? d.mobile_id} style={{ borderTop: "1px solid #f3f4f6" }}>
                     <td style={{ padding: 12 }}>
                       {d.device_name ? (
@@ -1270,6 +1380,31 @@ export default function Device() {
                       )}
                     </td>
                     <td style={{ padding: 12, fontFamily: "monospace", fontSize: 12, color: "#6b7280" }}>{d.mobile_id}</td>
+                    <td style={{ padding: 12 }}>
+                      {d.group_name ? (
+                        <span style={{
+                          padding: "4px 10px",
+                          background: "#dbeafe",
+                          borderRadius: 6,
+                          fontSize: 12,
+                          color: "#1e40af",
+                          fontWeight: 600,
+                        }}>
+                          {d.group_name}
+                        </span>
+                      ) : (
+                        <span style={{
+                          padding: "4px 10px",
+                          background: "#fef3c7",
+                          borderRadius: 6,
+                          fontSize: 12,
+                          color: "#92400e",
+                          fontWeight: 500,
+                        }}>
+                          Unassigned
+                        </span>
+                      )}
+                    </td>
                     <td style={{ padding: 12 }}>
                       {d.resolution ? (
                         <span style={{
@@ -1292,6 +1427,38 @@ export default function Device() {
                     <td style={{ padding: 12 }}>{fmtDate(d.updated_at)}</td>
                     <td style={{ padding: 12, textAlign: "right" }}>
                       <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                        {/* Unassign button - only show if device has a group */}
+                        {d.group_name && (
+                          <button 
+                            style={{ 
+                              ...btn, 
+                              background: "#f59e0b", 
+                              padding: "6px 10px", 
+                              fontSize: 11,
+                              opacity: unassigning === d.mobile_id ? 0.7 : 1,
+                            }} 
+                            onClick={() => handleUnassignFromGroup(d)}
+                            disabled={unassigning === d.mobile_id}
+                            title="Unassign from group"
+                          >
+                            {unassigning === d.mobile_id ? "..." : "🔓 Unassign"}
+                          </button>
+                        )}
+                        {/* Active/Inactive toggle button - shows different action based on current tab */}
+                        <button 
+                          style={{ 
+                            ...btn, 
+                            background: activeTab === "inactive" ? "#16a34a" : "#dc2626", 
+                            padding: "6px 10px", 
+                            fontSize: 11,
+                            opacity: togglingActive === d.mobile_id ? 0.7 : 1,
+                          }} 
+                          onClick={() => handleToggleActive(d)}
+                          disabled={togglingActive === d.mobile_id}
+                          title={activeTab === "inactive" ? "Activate device" : "Deactivate device"}
+                        >
+                          {togglingActive === d.mobile_id ? "..." : (activeTab === "inactive" ? "▶️ Activate" : "⏸️ Deactivate")}
+                        </button>
                         <button 
                           style={{ ...btn, background: "#10b981", padding: "6px 12px", fontSize: 12 }} 
                           onClick={() => setAssignDevice(d)}

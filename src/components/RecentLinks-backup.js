@@ -176,83 +176,6 @@ function StatusDot({ isOnline }) {
   );
 }
 
-function DownloadProgressBadge({ progress }) {
-  if (!progress || !progress.is_downloading) return null;
-  
-  const { current_file, total_files, file_name, progress: percent, downloaded_bytes, total_bytes } = progress;
-  
-  const formatBytes = (bytes) => {
-    if (!bytes || bytes === 0) return "0 B";
-    if (bytes < 1024) return bytes + " B";
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + " MB";
-    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + " GB";
-  };
-  
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 4,
-        padding: "8px 12px",
-        borderRadius: 10,
-        background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
-        color: "#fff",
-        fontSize: 11,
-        marginTop: 8,
-        boxShadow: "0 2px 8px rgba(59, 130, 246, 0.4)",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <span style={{ fontSize: 14 }}>⬇️</span>
-        <span style={{ fontWeight: 700 }}>Downloading</span>
-        <span style={{ opacity: 0.8, fontSize: 10 }}>
-          File {current_file}/{total_files}
-        </span>
-      </div>
-      
-      {file_name && (
-        <div style={{ 
-          fontSize: 10, 
-          opacity: 0.9,
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          maxWidth: 180,
-        }}>
-          {file_name}
-        </div>
-      )}
-      
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{
-          flex: 1,
-          height: 6,
-          background: "rgba(255,255,255,0.3)",
-          borderRadius: 3,
-          overflow: "hidden",
-        }}>
-          <div style={{
-            width: `${percent || 0}%`,
-            height: "100%",
-            background: "#fff",
-            borderRadius: 3,
-            transition: "width 0.3s ease",
-          }} />
-        </div>
-        <span style={{ fontWeight: 700, minWidth: 36 }}>{percent || 0}%</span>
-      </div>
-      
-      {total_bytes > 0 && (
-        <div style={{ fontSize: 10, opacity: 0.8 }}>
-          {formatBytes(downloaded_bytes)} / {formatBytes(total_bytes)}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function MetricsCard({ temperature, daily, monthly }) {
   return (
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -461,7 +384,6 @@ function groupRows(items) {
         daily_count: it.daily_count,
         monthly_count: it.monthly_count,
         rotation: it.rotation || 0,
-        is_active: it.is_active !== false, // Default to true if not set
         originals: [],
       });
     }
@@ -2058,7 +1980,6 @@ export default function RecentLinks({ refreshKey }) {
   const [onlineStatus, setOnlineStatus] = useState({});
   const [layoutInfo, setLayoutInfo] = useState({}); // Store layout_mode per device
   const [layoutRefreshKey, setLayoutRefreshKey] = useState(0); // Force layout reload
-  const [downloadProgress, setDownloadProgress] = useState({}); // Store download progress per device
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [loadedAt, setLoadedAt] = useState(null);
@@ -2102,50 +2023,6 @@ export default function RecentLinks({ refreshKey }) {
   }, []);
 
   const rowsGrouped = useMemo(() => groupRows(rowsRaw), [rowsRaw]);
-
-  // Poll download progress for all devices (more frequently than other data)
-  useEffect(() => {
-    const devices = Array.from(new Set(rowsGrouped.map((r) => r.mobile_id)));
-    if (devices.length === 0) return;
-
-    let cancelled = false;
-    
-    const fetchProgress = async () => {
-      try {
-        const progressResults = await Promise.all(
-          devices.map((mobileId) =>
-            fetch(`${window.location.protocol}//${window.location.hostname}:8005/device/${encodeURIComponent(mobileId)}/download_progress`)
-              .then(r => r.ok ? r.json() : null)
-              .catch(() => null)
-          )
-        );
-        if (cancelled) return;
-
-        setDownloadProgress((prev) => {
-          const next = { ...prev };
-          progressResults.forEach((data) => {
-            if (data && data.mobile_id) {
-              next[data.mobile_id] = data;
-            }
-          });
-          return next;
-        });
-      } catch (e) {
-        // Ignore errors
-      }
-    };
-
-    // Initial fetch
-    fetchProgress();
-    
-    // Poll every 2 seconds for download progress
-    const intervalId = setInterval(fetchProgress, 2000);
-
-    return () => {
-      cancelled = true;
-      clearInterval(intervalId);
-    };
-  }, [rowsGrouped]);
 
   // Load online status AND layout info for each device
   useEffect(() => {
@@ -2192,14 +2069,12 @@ export default function RecentLinks({ refreshKey }) {
           const next = { ...prev };
           layoutResults.forEach(({ mobileId, layout_mode, layout_config }) => {
             // Parse layout_config if it's a string
-            let parsedConfig = [];
+            let parsedConfig = null;
             if (layout_config) {
               try {
-                const parsed = typeof layout_config === 'string' ? JSON.parse(layout_config) : layout_config;
-                // Ensure parsedConfig is always an array
-                parsedConfig = Array.isArray(parsed) ? parsed : [];
+                parsedConfig = typeof layout_config === 'string' ? JSON.parse(layout_config) : layout_config;
               } catch (e) {
-                parsedConfig = [];
+                parsedConfig = null;
               }
             }
             next[mobileId] = { mode: layout_mode, config: parsedConfig };
@@ -2221,7 +2096,6 @@ export default function RecentLinks({ refreshKey }) {
     const v = (fVideo || "").toLowerCase();
 
     return rowsGrouped
-      .filter((r) => r.is_active !== false) // Only show active devices
       .map((r) => {
         // Extract images from layoutInfo
         const layout = layoutInfo[r.mobile_id];
@@ -2239,18 +2113,13 @@ export default function RecentLinks({ refreshKey }) {
       .filter((r) => !g || (r.gname || "").toLowerCase().includes(g))
       .filter((r) => !s || r.shop_name.toLowerCase().includes(s))
       .filter((r) => !v || r.videos.join(", ").toLowerCase().includes(v))
-      // Sort by online status (online first)
+      // Sort by online status first (online devices at top)
       .sort((a, b) => {
         const aOnline = onlineStatus[a.mobile_id] === true ? 1 : 0;
         const bOnline = onlineStatus[b.mobile_id] === true ? 1 : 0;
-        return bOnline - aOnline;
+        return bOnline - aOnline; // Online first
       });
   }, [rowsGrouped, fDevice, fGroup, fShop, fVideo, onlineStatus, layoutInfo]);
-
-  // Count inactive devices
-  const inactiveDeviceCount = useMemo(() => {
-    return rowsGrouped.filter((r) => r.is_active === false).length;
-  }, [rowsGrouped]);
 
   // Calculate summary statistics
   const summary = useMemo(() => {
@@ -2425,28 +2294,6 @@ export default function RecentLinks({ refreshKey }) {
               </div>
               <div style={{ fontSize: 24, fontWeight: 800, color: "#f59e0b" }}>
                 {summary.unassignedDevices}
-              </div>
-              <div style={{ fontSize: 11, color: "#94a3b8" }}>devices</div>
-            </div>
-          )}
-
-          {/* Inactive Devices */}
-          {inactiveDeviceCount > 0 && (
-            <div
-              style={{
-                background: "#fff",
-                borderRadius: 12,
-                padding: "14px 16px",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                borderLeft: "4px solid #dc2626",
-              }}
-              title="Inactive devices are hidden from this list"
-            >
-              <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600, marginBottom: 4 }}>
-                ⏸️ INACTIVE
-              </div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "#dc2626" }}>
-                {inactiveDeviceCount}
               </div>
               <div style={{ fontSize: 11, color: "#94a3b8" }}>devices</div>
             </div>
@@ -2643,7 +2490,6 @@ export default function RecentLinks({ refreshKey }) {
                         </button>
                       </div>
                       <StatusDot isOnline={onlineStatus[r.mobile_id]} />
-                      <DownloadProgressBadge progress={downloadProgress[r.mobile_id]} />
                     </div>
                   </td>
 
@@ -2711,7 +2557,7 @@ export default function RecentLinks({ refreshKey }) {
                         // Get layout config for this device
                         const layoutData = layoutInfo[r.mobile_id];
                         const layout = layoutData?.mode || "single";
-                        const config = Array.isArray(layoutData?.config) ? layoutData.config : [];
+                        const config = layoutData?.config || [];
                         
                         const slotCounts = {
                           single: 1,
@@ -2725,38 +2571,28 @@ export default function RecentLinks({ refreshKey }) {
                         
                         // Build slot info from layout_config
                         const slotInfo = [];
-                        
-                        // If we have valid config, use it exclusively
-                        if (config.length > 0) {
-                          for (let i = 0; i < numSlots; i++) {
-                            const position = i + 1;
-                            const configSlot = config.find(s => s.position === position);
-                            
-                            if (configSlot?.ad_name && configSlot?.content_type === "image") {
-                              // Image slot
-                              slotInfo.push({
-                                type: "image",
-                                name: configSlot.ad_name,
-                                rotation: configSlot.rotation ?? 0,
-                              });
-                            } else if (configSlot?.video_name) {
-                              // Video slot from config
-                              slotInfo.push({
-                                type: "video",
-                                name: configSlot.video_name,
-                                rotation: configSlot.rotation ?? 0,
-                              });
-                            } else {
-                              // Empty slot in config
-                              slotInfo.push({ type: "empty", name: null, rotation: 0 });
-                            }
-                          }
-                        } else {
-                          // No layout_config - fall back to originals sorted by grid_position
-                          const sortedVideos = [...(r.originals || [])]
-                            .sort((a, b) => (a.grid_position || 0) - (b.grid_position || 0));
+                        for (let i = 0; i < numSlots; i++) {
+                          const position = i + 1;
+                          const configSlot = config.find(s => s.position === position);
                           
-                          for (let i = 0; i < numSlots; i++) {
+                          if (configSlot?.ad_name && configSlot?.content_type === "image") {
+                            // Image slot
+                            slotInfo.push({
+                              type: "image",
+                              name: configSlot.ad_name,
+                              rotation: configSlot.rotation ?? 0,
+                            });
+                          } else if (configSlot?.video_name) {
+                            // Video slot from config
+                            slotInfo.push({
+                              type: "video",
+                              name: configSlot.video_name,
+                              rotation: configSlot.rotation ?? 0,
+                            });
+                          } else {
+                            // Check originals for this slot
+                            const sortedVideos = [...(r.originals || [])]
+                              .sort((a, b) => (a.grid_position || 0) - (b.grid_position || 0));
                             const video = sortedVideos[i];
                             if (video) {
                               slotInfo.push({
@@ -2777,9 +2613,7 @@ export default function RecentLinks({ refreshKey }) {
                             {slotInfo.map((slot, idx) => {
                               const isImage = slot.type === "image";
                               const isEmpty = slot.type === "empty";
-                              const prefix = isImage ? "🖼️" : "🎬";
-                              // Truncate name to first 8 chars
-                              const shortName = slot.name ? (slot.name.length > 8 ? slot.name.substring(0, 8) + "…" : slot.name) : "";
+                              const prefix = isImage ? "I" : "V";
                               
                               return (
                                 <span
@@ -2791,14 +2625,14 @@ export default function RecentLinks({ refreshKey }) {
                                     color: isEmpty ? "#9ca3af" : (isImage ? "#166534" : (slot.rotation ? "#92400e" : "#1e40af")),
                                     fontSize: 10,
                                     fontWeight: 500,
-                                    maxWidth: 120,
+                                    maxWidth: 80,
                                     overflow: "hidden",
                                     textOverflow: "ellipsis",
                                     whiteSpace: "nowrap",
                                   }}
                                   title={isEmpty ? `Slot ${idx + 1}: Empty` : `Slot ${idx + 1}: ${slot.name} (${slot.rotation}°)`}
                                 >
-                                  {isEmpty ? `S${idx + 1}: —` : `${prefix}${shortName} ${slot.rotation}°`}
+                                  {isEmpty ? `S${idx + 1}: —` : `${prefix}${idx + 1}: ${slot.rotation}°`}
                                 </span>
                               );
                             })}

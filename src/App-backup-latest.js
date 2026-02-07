@@ -26,26 +26,13 @@ export const useAuth = () => useContext(AuthContext);
 const ThemeContext = createContext({ isDark: false, toggle: () => {}, theme: {} });
 export const useTheme = () => useContext(ThemeContext);
 
-// DIGIX Brand Colors - Deep blue primary with amber/orange accent
-const BRAND = {
-  primary: "#0a1628",      // Deep navy blue (from logo background)
-  primaryLight: "#1e3a5f", // Lighter navy
-  accent: "#f59e0b",       // Amber/Orange accent
-  accentHover: "#d97706",  // Darker amber for hover
-  accentLight: "#fbbf24",  // Lighter amber
-  gradient: "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)", // Orange gradient
-  gradientBlue: "linear-gradient(135deg, #0a1628 0%, #1e3a5f 100%)", // Blue gradient
-};
-
 // Theme colors - comprehensive dark mode support
 const themes = {
   light: {
     bg: "#f0f4f8",
     card: "#fff",
     cardAlt: "#f9fafb",
-    sidebar: BRAND.primary,
-    sidebarHover: "rgba(245, 158, 11, 0.15)",
-    sidebarActive: "rgba(245, 158, 11, 0.25)",
+    sidebar: "#1e3a5f",
     text: "#1e293b",
     textSecondary: "#64748b",
     border: "#e5e7eb",
@@ -59,16 +46,12 @@ const themes = {
     warning: "#f59e0b",
     danger: "#ef4444",
     info: "#3b82f6",
-    accent: BRAND.accent,
-    accentHover: BRAND.accentHover,
   },
   dark: {
     bg: "#0f172a",
     card: "#1e293b",
     cardAlt: "#334155",
-    sidebar: BRAND.primary,
-    sidebarHover: "rgba(245, 158, 11, 0.15)",
-    sidebarActive: "rgba(245, 158, 11, 0.25)",
+    sidebar: "#0f172a",
     text: "#f1f5f9",
     textSecondary: "#94a3b8",
     border: "#475569",
@@ -82,8 +65,6 @@ const themes = {
     warning: "#f59e0b",
     danger: "#ef4444",
     info: "#3b82f6",
-    accent: BRAND.accent,
-    accentHover: BRAND.accentHover,
   }
 };
 
@@ -99,11 +80,11 @@ function Modal({ open, title, onClose, children, size = "lg" }) {
   if (!open) return null;
   const sizes = { sm: "480px", md: "640px", lg: "900px", xl: "1100px" };
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(10,22,40,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: `min(95vw, ${sizes[size]})`, maxHeight: "90vh", background: "#fff", borderRadius: 16, boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "16px 20px", background: BRAND.primary, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ padding: "16px 20px", background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h3 style={{ margin: 0, color: "#fff", fontSize: 18, fontWeight: 600 }}>{title}</h3>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "rgba(255,255,255,0.1)", color: "#fff", fontSize: 18, cursor: "pointer", transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = BRAND.accent} onMouseOut={(e) => e.target.style.background = "rgba(255,255,255,0.1)"}>✕</button>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "rgba(255,255,255,0.1)", color: "#fff", fontSize: 18, cursor: "pointer" }}>✕</button>
         </div>
         <div style={{ padding: 20, overflow: "auto", flex: 1 }}>{children}</div>
       </div>
@@ -141,34 +122,29 @@ function LoginPage({ onLogin }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: BRAND.gradientBlue }}>
-      <div style={{ width: 420, background: "#fff", borderRadius: 20, overflow: "hidden", boxShadow: "0 25px 80px rgba(0,0,0,0.5)" }}>
-        {/* Logo Header Section with Dark Background */}
-        <div style={{ background: BRAND.primary, padding: "40px 40px 32px", textAlign: "center" }}>
-          <img src="/digix-logo.png" alt="DIGIX" style={{ height: 50, marginBottom: 12, filter: "drop-shadow(0 4px 20px rgba(245,158,11,0.4))" }} />
-          <p style={{ margin: 0, color: "rgba(255,255,255,0.6)", fontSize: 14 }}>Digital Signage Management</p>
-        </div>
-        
-        {/* Form Section */}
-        <div style={{ padding: "32px 40px 40px" }}>
-          <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: "block", marginBottom: 8, fontWeight: 600, color: "#374151", fontSize: 14 }}>Username</label>
-              <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter username" style={{ width: "100%", padding: "14px 16px", borderRadius: 10, border: "2px solid #e5e7eb", fontSize: 15, outline: "none", boxSizing: "border-box", transition: "border-color 0.2s" }} onFocus={(e) => e.target.style.borderColor = BRAND.accent} onBlur={(e) => e.target.style.borderColor = "#e5e7eb"} />
-            </div>
-            <div style={{ marginBottom: 24 }}>
-              <label style={{ display: "block", marginBottom: 8, fontWeight: 600, color: "#374151", fontSize: 14 }}>Password</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password" style={{ width: "100%", padding: "14px 16px", borderRadius: 10, border: "2px solid #e5e7eb", fontSize: 15, outline: "none", boxSizing: "border-box", transition: "border-color 0.2s" }} onFocus={(e) => e.target.style.borderColor = BRAND.accent} onBlur={(e) => e.target.style.borderColor = "#e5e7eb"} />
-            </div>
-            {error && <div style={{ padding: 12, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, color: "#dc2626", fontSize: 14, marginBottom: 20 }}>⚠️ {error}</div>}
-            <button type="submit" disabled={loading} style={{ width: "100%", padding: "14px", background: loading ? "#94a3b8" : BRAND.gradient, border: "none", borderRadius: 10, color: "#fff", fontSize: 16, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", boxShadow: loading ? "none" : "0 4px 20px rgba(245,158,11,0.4)", transition: "all 0.2s" }}>
-              {loading ? "Signing in..." : "Sign In"}
-            </button>
-          </form>
-          <div style={{ marginTop: 24, textAlign: "center", color: "#94a3b8", fontSize: 12 }}>
-            © 2025 DIGIX. All rights reserved.
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%)" }}>
+      <div style={{ width: 420, background: "#fff", borderRadius: 20, padding: 40, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div style={{ width: 70, height: 70, background: "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: "0 8px 30px rgba(245,158,11,0.3)" }}>
+            <span style={{ color: "#fff", fontSize: 32, fontWeight: 800 }}>D</span>
           </div>
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: "#1e3a5f" }}>DIGIX</h1>
+          <p style={{ margin: "8px 0 0", color: "#64748b", fontSize: 14 }}>Digital Signage Management</p>
         </div>
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: "block", marginBottom: 8, fontWeight: 600, color: "#374151", fontSize: 14 }}>Username</label>
+            <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter username" style={{ width: "100%", padding: "14px 16px", borderRadius: 10, border: "2px solid #e5e7eb", fontSize: 15, outline: "none", boxSizing: "border-box" }} />
+          </div>
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: "block", marginBottom: 8, fontWeight: 600, color: "#374151", fontSize: 14 }}>Password</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password" style={{ width: "100%", padding: "14px 16px", borderRadius: 10, border: "2px solid #e5e7eb", fontSize: 15, outline: "none", boxSizing: "border-box" }} />
+          </div>
+          {error && <div style={{ padding: 12, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, color: "#dc2626", fontSize: 14, marginBottom: 20 }}>⚠️ {error}</div>}
+          <button type="submit" disabled={loading} style={{ width: "100%", padding: "14px", background: loading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%)", border: "none", borderRadius: 10, color: "#fff", fontSize: 16, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
+            {loading ? "Signing in..." : "Sign In"}
+          </button>
+        </form>
       </div>
     </div>
   );
@@ -260,7 +236,7 @@ function UserManagement({ onUserDeactivated }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <h3 style={{ margin: 0 }}>Users ({users.length})</h3>
-        <button onClick={() => setShowCreate(true)} style={{ padding: "10px 20px", background: BRAND.gradient, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600, boxShadow: "0 2px 8px rgba(245,158,11,0.3)" }}>+ Add User</button>
+        <button onClick={() => setShowCreate(true)} style={{ padding: "10px 20px", background: "#1e3a5f", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}>+ Add User</button>
       </div>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead><tr style={{ background: "#f8fafc" }}>
@@ -397,17 +373,19 @@ function Sidebar({ currentPage, setCurrentPage, user, onLogout, onChangePassword
     menuItems.push({ id: "users", icon: "👤", label: "Users" });
   }
 
-  const sidebarBg = BRAND.primary;
+  const sidebarBg = isDark ? "#0f172a" : "#1e3a5f";
 
   return (
     <div style={{ width: 260, background: sidebarBg, minHeight: "100vh", display: "flex", flexDirection: "column", position: "fixed", left: 0, top: 0 }}>
-      <div style={{ padding: "24px 20px", borderBottom: "1px solid rgba(245,158,11,0.2)" }}>
+      <div style={{ padding: "24px 20px", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <img src="/digix-logo.png" alt="DIGIX" style={{ height: 32, filter: "brightness(0) invert(1)" }} />
+          <div style={{ width: 42, height: 42, background: "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ color: "#fff", fontSize: 16, fontWeight: 800, letterSpacing: -1 }}>DX</span>
+          </div>
+          <div><div style={{ color: "#fff", fontSize: 20, fontWeight: 800 }}>DIGIX</div><div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>Digital Signage</div></div>
         </div>
-        <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginTop: 8 }}>Digital Signage Platform</div>
       </div>
-      <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(245,158,11,0.2)" }}>
+      <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700 }}>{(user?.full_name || user?.username || "U")[0].toUpperCase()}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -424,13 +402,13 @@ function Sidebar({ currentPage, setCurrentPage, user, onLogout, onChangePassword
       </div>
       <nav style={{ flex: 1, padding: "16px 12px" }}>
         {menuItems.map((item) => (
-          <button key={item.id} onClick={() => setCurrentPage(item.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", marginBottom: 4, border: "none", borderRadius: 10, background: currentPage === item.id ? "rgba(245,158,11,0.2)" : "transparent", color: currentPage === item.id ? "#f59e0b" : "rgba(255,255,255,0.7)", cursor: "pointer", fontSize: 14, fontWeight: currentPage === item.id ? 600 : 500, textAlign: "left", transition: "all 0.2s", borderLeft: currentPage === item.id ? "3px solid #f59e0b" : "3px solid transparent" }}>
+          <button key={item.id} onClick={() => setCurrentPage(item.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", marginBottom: 4, border: "none", borderRadius: 10, background: currentPage === item.id ? "rgba(255,255,255,0.15)" : "transparent", color: currentPage === item.id ? "#fff" : "rgba(255,255,255,0.7)", cursor: "pointer", fontSize: 14, fontWeight: 500, textAlign: "left" }}>
             <span style={{ fontSize: 18 }}>{item.icon}</span>{item.label}
           </button>
         ))}
       </nav>
-      <div style={{ padding: "16px 12px", borderTop: "1px solid rgba(245,158,11,0.2)" }}>
-        <button onClick={onLogout} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", border: "none", borderRadius: 10, background: "rgba(239,68,68,0.15)", color: "#fca5a5", cursor: "pointer", fontSize: 14, fontWeight: 500, transition: "all 0.2s" }}><span>🚪</span> Logout</button>
+      <div style={{ padding: "16px 12px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+        <button onClick={onLogout} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", border: "none", borderRadius: 10, background: "rgba(239,68,68,0.1)", color: "#fca5a5", cursor: "pointer", fontSize: 14, fontWeight: 500 }}><span>🚪</span> Logout</button>
       </div>
     </div>
   );

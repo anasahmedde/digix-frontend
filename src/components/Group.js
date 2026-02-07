@@ -510,9 +510,17 @@ export default function Group() {
                                     borderRadius: 8,
                                     fontSize: 13,
                                     color: "#374151",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 2,
                                   }}
                                 >
-                                  📱 {d.device_name || d.mobile_id}
+                                  <span style={{ fontWeight: 600 }}>
+                                    📱 {d.device_name || "Unnamed Device"}
+                                  </span>
+                                  <span style={{ fontSize: 11, color: "#6b7280", fontFamily: "monospace" }}>
+                                    ID: {d.mobile_id}
+                                  </span>
                                 </span>
                               ))}
                             </div>
@@ -620,15 +628,23 @@ export default function Group() {
                     <span
                       key={d.id}
                       style={{
-                        padding: "8px 14px",
+                        padding: "8px 12px",
                         background: "#fef2f2",
                         border: "1px solid #fecaca",
                         borderRadius: 8,
-                        fontSize: 13,
+                        fontSize: 12,
                         color: "#dc2626",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 2,
                       }}
                     >
-                      📱 {d.device_name || d.mobile_id}
+                      <span style={{ fontWeight: 600 }}>
+                        📱 {d.device_name || "Unnamed Device"}
+                      </span>
+                      <span style={{ fontSize: 10, color: "#9ca3af", fontFamily: "monospace" }}>
+                        {d.mobile_id}
+                      </span>
                     </span>
                   ))}
                 </div>

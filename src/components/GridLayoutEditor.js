@@ -77,9 +77,11 @@ function GridLayoutEditor({ open, onClose, deviceId, videos = [], advertisements
           // Parse layout_config to restore slots
           if (layoutRes.data?.layout_config) {
             try {
-              savedLayoutConfig = typeof layoutRes.data.layout_config === 'string' 
+              const parsed = typeof layoutRes.data.layout_config === 'string' 
                 ? JSON.parse(layoutRes.data.layout_config) 
                 : layoutRes.data.layout_config;
+              // Ensure savedLayoutConfig is always an array
+              savedLayoutConfig = Array.isArray(parsed) ? parsed : [];
               setSavedConfig(savedLayoutConfig);
             } catch (e) {
               console.log("Could not parse layout_config");
@@ -149,8 +151,9 @@ function GridLayoutEditor({ open, onClose, deviceId, videos = [], advertisements
     for (let i = 0; i < numSlots; i++) {
       const position = i + 1;
       
-      // Check savedConfig for this slot
-      const savedSlot = savedConfig?.find(s => s.position === position);
+      // Check savedConfig for this slot (ensure it's an array)
+      const configArray = Array.isArray(savedConfig) ? savedConfig : [];
+      const savedSlot = configArray.find(s => s.position === position);
       
       if (savedSlot?.ad_name && savedSlot?.content_type === "image") {
         // This slot has an image - find the advertisement data
